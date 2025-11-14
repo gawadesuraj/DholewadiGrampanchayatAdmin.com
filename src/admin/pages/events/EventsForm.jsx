@@ -42,10 +42,19 @@ export default function EventsForm() {
     }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
+      toast.info('Compressing image...');
+      try {
+        const { compressedFile, originalSize, compressedSize } = await compressImage(file);
+        toast.success(`Image compressed successfully! Original: ${originalSize}MB → Compressed: ${compressedSize}MB`);
+        setImageFile(compressedFile);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        toast.error('Error compressing image: ' + error.message);
+        setImageFile(file); // Fallback to original file
+      }
     }
   };
 
@@ -67,13 +76,10 @@ export default function EventsForm() {
   };
 
   const uploadImage = async (file) => {
-    const { compressedFile, originalSize, compressedSize } = await compressImage(file);
-    toast.success(`Image compressed successfully! Original: ${originalSize}MB → Compressed: ${compressedSize}MB`);
-
-    const fileName = `${Date.now()}-${compressedFile.name}`;
+    const fileName = `${Date.now()}-${file.name}`;
     const { error } = await supabase.storage
       .from('events')
-      .upload(fileName, compressedFile);
+      .upload(fileName, file);
 
     if (error) throw error;
     const { data: { publicUrl } } = supabase.storage
@@ -88,7 +94,7 @@ export default function EventsForm() {
     try {
       let imageUrl = formData.image_url;
       if (imageFile) {
-        toast.info('Compressing image...');
+        toast.info('Uploading image...');
         imageUrl = await uploadImage(imageFile);
         toast.success('Image uploaded successfully!');
       }
