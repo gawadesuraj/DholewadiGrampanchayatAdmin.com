@@ -4,29 +4,29 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchEventById, upsertEvent } from "../../services/api";
 import { supabase } from "../../services/supabaseClient";
-import imageCompression from 'browser-image-compression';
-import { toast } from 'react-toastify';
+import imageCompression from "browser-image-compression";
+import { toast } from "react-toastify";
 
 export default function EventsForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    content: '',
-    image_url: '',
-    date: '',
-    time: '',
-    timePeriod: 'AM',
-    venue: '',
-    is_published: false
+    title: "",
+    subtitle: "",
+    description: "",
+    content: "",
+    image_url: "",
+    date: "",
+    time: "",
+    timePeriod: "AM",
+    venue: "",
+    is_published: false,
   });
   const [imageFile, setImageFile] = useState(null);
 
   useEffect(() => {
-    if (id && id !== 'new') {
+    if (id && id !== "new") {
       (async () => {
         const data = await fetchEventById(id);
         setFormData(data);
@@ -36,23 +36,26 @@ export default function EventsForm() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      toast.info('Compressing image...');
+      toast.info("Compressing image...");
       try {
-        const { compressedFile, originalSize, compressedSize } = await compressImage(file);
-        toast.success(`Image compressed successfully! Original: ${originalSize}MB → Compressed: ${compressedSize}MB`);
+        const { compressedFile, originalSize, compressedSize } =
+          await compressImage(file);
+        toast.success(
+          `Image compressed successfully! Original: ${originalSize}MB → Compressed: ${compressedSize}MB`
+        );
         setImageFile(compressedFile);
       } catch (error) {
-        console.error('Error compressing image:', error);
-        toast.error('Error compressing image: ' + error.message);
+        console.error("Error compressing image:", error);
+        toast.error("Error compressing image: " + error.message);
         setImageFile(file); // Fallback to original file
       }
     }
@@ -70,21 +73,25 @@ export default function EventsForm() {
       const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2); // Size in MB
       return { compressedFile, originalSize, compressedSize };
     } catch (error) {
-      console.error('Error compressing image:', error);
-      return { compressedFile: file, originalSize: (file.size / 1024 / 1024).toFixed(2), compressedSize: (file.size / 1024 / 1024).toFixed(2) };
+      console.error("Error compressing image:", error);
+      return {
+        compressedFile: file,
+        originalSize: (file.size / 1024 / 1024).toFixed(2),
+        compressedSize: (file.size / 1024 / 1024).toFixed(2),
+      };
     }
   };
 
   const uploadImage = async (file) => {
     const fileName = `${Date.now()}-${file.name}`;
     const { error } = await supabase.storage
-      .from('events')
+      .from("events")
       .upload(fileName, file);
 
     if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage
-      .from('events')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("events").getPublicUrl(fileName);
     return publicUrl;
   };
 
@@ -94,18 +101,22 @@ export default function EventsForm() {
     try {
       let imageUrl = formData.image_url;
       if (imageFile) {
-        toast.info('Uploading image...');
+        toast.info("Uploading image...");
         imageUrl = await uploadImage(imageFile);
-        toast.success('Image uploaded successfully!');
+        toast.success("Image uploaded successfully!");
       }
 
+      // Remove timePeriod manually
       const payload = { ...formData, image_url: imageUrl };
+      delete payload.timePeriod;
+
       await upsertEvent(payload);
-      toast.success('Event saved successfully!');
-      navigate('/admin/events');
+
+      toast.success("Event saved successfully!");
+      navigate("/admin/events");
     } catch (error) {
-      console.error('Error saving event:', error);
-      toast.error('Error saving event: ' + error.message);
+      console.error("Error saving event:", error);
+      toast.error("Error saving event: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -113,7 +124,9 @@ export default function EventsForm() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">{id === 'new' ? 'New Event' : 'Edit Event'}</h1>
+      <h1 className="text-2xl font-semibold">
+        {id === "new" ? "New Event" : "Edit Event"}
+      </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -170,7 +183,11 @@ export default function EventsForm() {
             className="w-full px-3 py-2 border rounded-md"
           />
           {formData.image_url && (
-            <img src={formData.image_url} alt="Event" className="mt-2 max-w-xs" />
+            <img
+              src={formData.image_url}
+              alt="Event"
+              className="mt-2 max-w-xs"
+            />
           )}
         </div>
 
@@ -223,8 +240,6 @@ export default function EventsForm() {
           />
         </div>
 
-
-
         <div className="flex items-center">
           <input
             type="checkbox"
@@ -242,11 +257,11 @@ export default function EventsForm() {
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
           >
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? "Saving..." : "Save"}
           </button>
           <button
             type="button"
-            onClick={() => navigate('/admin/events')}
+            onClick={() => navigate("/admin/events")}
             className="px-4 py-2 border rounded-md"
           >
             Cancel
