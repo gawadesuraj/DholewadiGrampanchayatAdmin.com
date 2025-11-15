@@ -38,8 +38,8 @@ export default function PhotosForm() {
     try {
       // Compression options for high quality but smaller size
       const options = {
-        maxSizeMB: 1, // Maximum size in MB
-        maxWidthOrHeight: 1920, // Maximum width/height
+        maxSizeMB: 0.1, // Maximum size 100KB for strong compression
+        maxWidthOrHeight: 1600, // Maximum width/height
         useWebWorker: true,
         quality: 0.85, // High quality (85%)
         preserveExif: false, // Remove EXIF data to save space

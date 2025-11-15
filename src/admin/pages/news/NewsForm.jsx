@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchNewsById, upsertNews } from "../../services/api";
 import { supabase } from "../../services/supabaseClient";
+import imageCompression from "browser-image-compression";
+import { toast } from "react-toastify";
 
 
 const schema = z.object({
@@ -107,16 +109,50 @@ export default function NewsForm() {
     onChange={async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const filePath = `news/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("news-images")
-        .upload(filePath, file);
-      if (uploadError) {
-        alert("Upload failed: " + uploadError.message);
+
+      // Validate file size (max 10MB before compression)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
         return;
       }
-      const { data } = supabase.storage.from("news-images").getPublicUrl(filePath);
-      setValue("image_url", data.publicUrl);
+
+      toast.info("Compressing image...");
+      try {
+        const options = {
+          maxSizeMB: 0.1, // Max size 100KB for strong compression
+          maxWidthOrHeight: 1600, // Max width/height
+          useWebWorker: true,
+          quality: 0.85, // High quality compression
+        };
+
+        const compressedFile = await imageCompression(file, options);
+        toast.success(`Image compressed successfully! Original: ${(file.size / 1024 / 1024).toFixed(2)}MB → Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+
+        const filePath = `news/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("news-images")
+          .upload(filePath, compressedFile);
+        if (uploadError) {
+          toast.error("Upload failed: " + uploadError.message);
+          return;
+        }
+        const { data } = supabase.storage.from("news-images").getPublicUrl(filePath);
+        setValue("image_url", data.publicUrl);
+      } catch (error) {
+        console.error("Compression failed:", error);
+        toast.error("Error compressing image: " + error.message);
+        // Fallback to original file
+        const filePath = `news/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("news-images")
+          .upload(filePath, file);
+        if (uploadError) {
+          toast.error("Upload failed: " + uploadError.message);
+          return;
+        }
+        const { data } = supabase.storage.from("news-images").getPublicUrl(filePath);
+        setValue("image_url", data.publicUrl);
+      }
     }}
   />
   {errors.image_url && (

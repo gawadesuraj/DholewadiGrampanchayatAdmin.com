@@ -63,9 +63,10 @@ export default function EventsForm() {
 
   const compressImage = async (file) => {
     const options = {
-      maxSizeMB: 1, // Max size in MB
-      maxWidthOrHeight: 1920, // Max width/height
+      maxSizeMB: 0.1, // Max size 100KB for strong compression
+      maxWidthOrHeight: 1600, // Max width/height
       useWebWorker: true,
+      quality: 0.85, // High quality compression
     };
     try {
       const originalSize = (file.size / 1024 / 1024).toFixed(2); // Size in MB
